@@ -12,6 +12,7 @@ require('luau')
 require('lor/lor_utils')
 _libs.lor.req('all')
 _libs.lor.debug = false
+require('logger')
 
 local rarr = string.char(129,168)
 local bags = {[0]='inventory',[8]='wardrobe',[10]='wardrobe2',[11]='wardrobe3',[12]='wardrobe4'}
@@ -26,6 +27,9 @@ local defaults = {hps = {['<']=100, ['>']=5}}
 settings = _libs.lor.settings.load('data/settings.lua', defaults)
 local settings_loaded = false
 
+local isRandom = false
+local list = {}
+local randomIdx = 1
 
 local function weap_type()
     local items = windower.ffxi.get_items()
@@ -50,6 +54,7 @@ function save_settings()
     settings[name][job][skill].hps = hps
     settings[name][job][skill].mobs = mobs
     settings[name][job][skill].ws_cmd = ws_cmd
+    settings[name][job][skill].ws_cmd = list
     settings:save()
 end
 
@@ -61,6 +66,7 @@ function load_settings()
     hps = s.hps or defaults.hps
     mobs = s.mobs or {}
     ws_cmd = s.ws_cmd or ''
+    list = s.list or {}
     settings_loaded = true
 end
 
@@ -110,12 +116,18 @@ windower.register_event('addon command', function (command,...)
         windower.send_command(('lua %s %s'):format(command, _addon.name))
 	elseif S{'enable','on','start'}:contains(command) then
 		enabled = true
+        isRandom = false
 		print_status()
 	elseif S{'disable','off','stop'}:contains(command) then
 		enabled = false
+        isRandom = false
 		print_status()
 	elseif command == 'toggle' then
 		enabled = not enabled
+		print_status()
+	elseif command == 'rnd' then
+		isRandom = not isRandom
+        enabled = true
 		print_status()
 	elseif S{'set','use','ws'}:contains(command) then
         ws_cmd = ('/ws "%s" <t>'):format(arg_str)
@@ -232,7 +244,16 @@ windower.register_event('prerender', function()
                         araDelayed = araDelayed + 1
                     else
                         if hp_gt < mob.hpp and mob.hpp < hp_lt then
-                            windower.send_command(('input %s'):format(ws_cmd))
+                            if isRandom and #list>0 then
+                                windower.send_command(('input /ws %s <t>'):format(list[randomIdx]))
+                                if randomIdx+1 >= #list then
+                                    randomIdx = 1
+                                else
+                                    randomIdx = randomIdx + 1
+                                end
+                            else
+                                windower.send_command(('input %s'):format(ws_cmd))
+                            end
                         end
                         araDelayed = 0
                         if useAutoRA then
@@ -250,7 +271,11 @@ end)
 function print_status()
 	local power = enabled and 'ON' or 'OFF'
     local ws_msg = #ws_cmd > 1 and ws_cmd or '(no ws specified)'
-    atcf('[AutoWS: %s] %s %s mobs @ %d < HP%% < %s', power, ws_msg, rarr, hps['>'], hps['<'])
+    if isRandom then
+        atcf('[AutoWS: %s] %s %s mobs @ %d < HP%% < %s', power, "Random", rarr, hps['>'], hps['<'])
+    else
+        atcf('[AutoWS: %s] %s %s mobs @ %d < HP%% < %s', power, ws_msg, rarr, hps['>'], hps['<'])
+    end
 end
 
 
@@ -261,6 +286,7 @@ function print_help()
         ['hp (>|<) (hp%)'] = 'Set the default HP value for when weaponskills should be executed',
         ['use weaponskill_name'] = 'Set the weaponskill that should be used',
         ['autora (on|off)'] = 'Enable / disable the AutoRA addon',
+        ['rnd (on|off)'] = 'Enable / disable random the listed ws',
     }
     --local mwwidth = max(unpack(map(string.wlen, table.keys(help))))
     local mwwidth = col_width(help:keys())
