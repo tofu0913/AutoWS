@@ -14,6 +14,8 @@ require('lor/lor_utils')
 _libs.lor.req('all')
 _libs.lor.debug = false
 
+require('logger')
+
 local rarr = string.char(129,168)
 local bags = {[0]='inventory',[8]='wardrobe',[10]='wardrobe2',[11]='wardrobe3',[12]='wardrobe4'}
 
@@ -27,6 +29,27 @@ local defaults = {hps = {['<']=100, ['>']=5}, tpgt = {tp=999} }
 settings = _libs.lor.settings.load('data/settings.lua', defaults)
 local settings_loaded = false
 
+-- Widget
+local texts = require('texts')
+local text_setting = {
+    pos = {
+        x = 18,
+        y = 752
+    }
+}
+function setup_text(text)
+    text:bg_alpha(255)
+    text:bg_visible(true)
+    text:font('ＭＳ ゴシック')
+    text:size(11)
+    text:color(255,255,255,255)
+    text:stroke_alpha(200)
+    text:stroke_color(20,20,20)
+    text:stroke_width(2)
+	text:show()
+end
+text = texts.new("AutoWS: ${autows}", text_setting, {})
+setup_text(text)
 
 local function weap_type()
     local items = windower.ffxi.get_items()
@@ -202,7 +225,8 @@ windower.register_event('load', function()
     if not _libs.lor then
         windower.add_to_chat(39,'ERROR: .../Windower/addons/libs/lor/ not found! Please download: https://github.com/lorand-ffxi/lor_libs')
     end
-    atcc(262, 'Welcome to AutoWS!  It is recommended to use HP < 100 to prevent immediate WS on engage when too far away.')
+    log('Loadded')
+    -- atcc(262, 'Welcome to AutoWS!  It is recommended to use HP < 100 to prevent immediate WS on engage when too far away.')
     autowsLastCheck = os.clock()
     load_settings()
 end)
@@ -261,6 +285,7 @@ function print_status()
 	local power = enabled and 'ON' or 'OFF'
     local ws_msg = #ws_cmd > 1 and ws_cmd or '(no ws specified)'
     atcf('[AutoWS: %s] %s %s mobs @ %d < HP%% < %s [TP > %s]', power, ws_msg, rarr, hps['>'], hps['<'], tpgt.tp)
+    text.autows = power
 end
 
 
