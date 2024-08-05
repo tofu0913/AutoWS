@@ -225,12 +225,16 @@ windower.register_event('load', function()
     if not _libs.lor then
         windower.add_to_chat(39,'ERROR: .../Windower/addons/libs/lor/ not found! Please download: https://github.com/lorand-ffxi/lor_libs')
     end
+    windower.send_command('bind @w input //aws toggle')
     log('Loadded')
     -- atcc(262, 'Welcome to AutoWS!  It is recommended to use HP < 100 to prevent immediate WS on engage when too far away.')
     autowsLastCheck = os.clock()
     load_settings()
 end)
 
+windower.register_event('unload', function()
+    windower.send_command('unbind @w')
+end)
 
 windower.register_event('logout', function()
     windower.send_command('lua unload autows')
